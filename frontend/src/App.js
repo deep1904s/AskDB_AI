@@ -1,16 +1,17 @@
-import React from "react";
-import Upload from "./components/Upload";
-import Chat from "./components/Chat";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Home from "./pages/Home";
+import ResultPage from "./pages/ResultPage";
 
 function App() {
   return (
-    <div style={{ padding: "20px" }}>
-      <h1>QueryMind AI 🚀</h1>
-
-      <Upload />
-      <hr />
-      <Chat />
-    </div>
+    <BrowserRouter>
+      <div className="bg-[#0b0f14] min-h-screen text-white">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/result" element={<ResultPage />} />
+        </Routes>
+      </div>
+    </BrowserRouter>
   );
 }
 
