@@ -2,24 +2,25 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 
-export default function ChatInput() {
+export default function ChatInput({ history, setHistory }) {
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
     const handleSubmit = async () => {
-        if (!input) return;
+        if (!input.trim() || loading) return;
 
         setLoading(true);
 
-        const formData = new FormData();
-        formData.append("question", input);
+        // 🔥 Add to chat history
+        setHistory([...history, input]);
 
-        const res = await API.post("/ask", formData);
+        try {
+            const formData = new FormData();
+            formData.append("question", input);
 
-        setTimeout(() => {
-            setLoading(false);
-            console.log(res.data);
+            const res = await API.post("/ask", formData);
+
             navigate("/result", {
                 state: {
                     question: input,
@@ -27,38 +28,58 @@ export default function ChatInput() {
                     results: res.data.results,
                 },
             });
-        }, 2000);
+
+        } catch (err) {
+            alert("❌ Something went wrong. Try again.");
+        }
+
+        setLoading(false);
+        setInput("");
+    };
+
+    // ENTER support
+    const handleKeyPress = (e) => {
+        if (e.key === "Enter") handleSubmit();
     };
 
     return (
         <div className="w-full max-w-2xl">
 
+            {/* INPUT BOX */}
             <div className="flex bg-[#11161c] border border-gray-800 rounded-xl p-2 shadow-lg shadow-green-400/10">
 
                 <input
-                    className="flex-1 bg-transparent p-3 outline-none text-white"
+                    className="flex-1 bg-transparent p-3 outline-none text-white placeholder-gray-500"
                     placeholder="Ask anything about your data..."
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={handleKeyPress}
                 />
 
                 <button
                     onClick={handleSubmit}
-                    className="bg-green-400 text-black px-4 py-2 rounded-lg font-semibold hover:bg-green-300"
+                    disabled={loading}
+                    className={`px-4 py-2 rounded-lg font-semibold transition-all ${loading
+                            ? "bg-gray-600 text-gray-300 cursor-not-allowed"
+                            : "bg-green-400 text-black hover:bg-green-300 neon-btn"
+                        }`}
                 >
-                    Ask
+                    {loading ? "..." : "Ask"}
                 </button>
 
             </div>
 
-            {/* 🔥 Loading Animation */}
+            {/* 🔥 PREMIUM LOADING OVERLAY */}
             {loading && (
                 <div className="fixed inset-0 bg-black/80 flex flex-col items-center justify-center z-50">
 
-                    {/* AI Animation */}
-                    <div className="w-16 h-16 border-4 border-green-400 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="flex gap-2 mb-4">
+                        <div className="w-3 h-3 bg-green-400 rounded-full animate-bounce"></div>
+                        <div className="w-3 h-3 bg-green-400 rounded-full animate-bounce delay-150"></div>
+                        <div className="w-3 h-3 bg-green-400 rounded-full animate-bounce delay-300"></div>
+                    </div>
 
-                    <h2 className="text-green-400 mt-4 text-xl">
+                    <h2 className="text-green-400 text-xl">
                         AI is analyzing your data...
                     </h2>
 

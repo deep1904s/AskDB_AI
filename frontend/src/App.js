@@ -6,10 +6,13 @@ function App() {
   return (
     <BrowserRouter>
       <div className="bg-[#0b0f14] min-h-screen text-white">
+
+
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/result" element={<ResultPage />} />
         </Routes>
+
       </div>
     </BrowserRouter>
   );
