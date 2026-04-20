@@ -1,4 +1,4 @@
-# 🚀 AskDB — AI-Powered Natural Language to SQL System
+# 🚀 AskDB — AI-Powered Database Assistant
 
 <div align="center">
 
