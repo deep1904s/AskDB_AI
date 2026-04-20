@@ -2,34 +2,280 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Global Theme */
-body {
-  background: #0b0f14;
-  color: #ffffff;
-  font-family: system-ui, sans-serif;
+/* ========================================
+   AskDB — Design System
+   Theme: Dark + Neon Greenish-Yellow
+   ======================================== */
+
+/* === BASE RESET === */
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background: #0a0a0a;
+    color: #ffffff;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  #root {
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  ::selection {
+    background: rgba(200, 255, 0, 0.3);
+    color: #ffffff;
+  }
 }
 
-/* Smooth UI */
-* {
-  transition: all 0.2s ease-in-out;
-}
-
-/* Neon Glow Effect */
-.glow {
-  box-shadow: 0 0 10px #00ff99, 0 0 20px #00ff99;
-}
-
-/* Scrollbar (premium look) */
+/* === SCROLLBAR === */
 ::-webkit-scrollbar {
   width: 6px;
 }
 
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 ::-webkit-scrollbar-thumb {
-  background: #00ff99;
+  background: #333333;
   border-radius: 10px;
 }
 
-.neon-btn {
-  background: #00ff99;
-  box-shadow: 0 0 10px #00ff99;
+::-webkit-scrollbar-thumb:hover {
+  background: #c8ff00;
+}
+
+/* === UTILITY COMPONENTS === */
+@layer components {
+
+  /* Neon glow effects */
+  .neon-glow {
+    box-shadow: 0 0 20px rgba(200, 255, 0, 0.15),
+                0 0 40px rgba(200, 255, 0, 0.05);
+  }
+
+  .neon-glow-intense {
+    box-shadow: 0 0 30px rgba(200, 255, 0, 0.3),
+                0 0 60px rgba(200, 255, 0, 0.1);
+  }
+
+  .neon-border {
+    border: 1px solid rgba(200, 255, 0, 0.3);
+    box-shadow: 0 0 15px rgba(200, 255, 0, 0.08);
+  }
+
+  /* Neon text glow */
+  .neon-text {
+    color: #c8ff00;
+    text-shadow: 0 0 20px rgba(200, 255, 0, 0.4),
+                 0 0 40px rgba(200, 255, 0, 0.15);
+  }
+
+  /* Glass morphism surface */
+  .glass {
+    background: rgba(17, 17, 17, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  /* Primary button */
+  .btn-neon {
+    background: #c8ff00;
+    color: #0a0a0a;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 0 20px rgba(200, 255, 0, 0.15);
+  }
+
+  .btn-neon:hover {
+    box-shadow: 0 0 30px rgba(200, 255, 0, 0.35);
+    transform: translateY(-1px);
+  }
+
+  .btn-neon:active {
+    transform: translateY(0);
+  }
+
+  .btn-neon:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  /* Ghost button */
+  .btn-ghost {
+    background: transparent;
+    color: #888888;
+    border: 1px solid #2a2a2a;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .btn-ghost:hover {
+    color: #c8ff00;
+    border-color: rgba(200, 255, 0, 0.3);
+    background: rgba(200, 255, 0, 0.05);
+  }
+
+  /* Code block */
+  .code-block {
+    background: #0a0a0a;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    line-height: 1.7;
+    overflow-x: auto;
+  }
+
+  /* Table styling */
+  .data-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.85rem;
+  }
+
+  .data-table th {
+    background: #1a1a1a;
+    color: #c8ff00;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid #2a2a2a;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  .data-table td {
+    padding: 8px 14px;
+    color: #cccccc;
+    border-bottom: 1px solid rgba(42, 42, 42, 0.5);
+    white-space: nowrap;
+  }
+
+  .data-table tbody tr {
+    transition: background 0.15s ease;
+  }
+
+  .data-table tbody tr:hover {
+    background: rgba(200, 255, 0, 0.03);
+  }
+
+  .data-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+/* === CUSTOM ANIMATIONS === */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes glowPulse {
+  0%, 100% {
+    text-shadow: 0 0 20px rgba(200, 255, 0, 0.4),
+                 0 0 40px rgba(200, 255, 0, 0.15);
+  }
+  50% {
+    text-shadow: 0 0 30px rgba(200, 255, 0, 0.6),
+                 0 0 60px rgba(200, 255, 0, 0.25);
+  }
+}
+
+@keyframes borderGlow {
+  0%, 100% {
+    border-color: rgba(200, 255, 0, 0.2);
+    box-shadow: 0 0 15px rgba(200, 255, 0, 0.05);
+  }
+  50% {
+    border-color: rgba(200, 255, 0, 0.4);
+    box-shadow: 0 0 25px rgba(200, 255, 0, 0.12);
+  }
+}
+
+.animate-glow-pulse {
+  animation: glowPulse 2.5s ease-in-out infinite;
+}
+
+.animate-border-glow {
+  animation: borderGlow 2s ease-in-out infinite;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.3s ease-out forwards;
+}
+
+/* Staggered animation delays for children */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+
+/* === TEXTAREA RESET === */
+textarea {
+  resize: none;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+textarea:focus {
+  outline: none;
+}
+
+/* === FOCUS VISIBLE === */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid rgba(200, 255, 0, 0.5);
+  outline-offset: 2px;
+}
+
+/* === TRANSITION DEFAULTS === */
+a, button {
+  transition: all 0.2s ease;
 }

@@ -11,3 +11,11 @@ def get_cache(key):
 
 def set_cache(key, value):
     r.set(key, value, ex=300)  # expire in 5 min
+
+def clear_cache():
+    """Clear all cached queries — called when a new dataset is uploaded."""
+    try:
+        r.flushdb()
+        print("🗑️ Redis cache cleared")
+    except Exception as e:
+        print(f"⚠️ Failed to clear Redis cache: {e}")

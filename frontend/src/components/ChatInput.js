@@ -1,95 +1,88 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import API from "../services/api";
+import { useState, useRef } from "react";
 
-export default function ChatInput({ history, setHistory }) {
-    const [input, setInput] = useState("");
-    const [loading, setLoading] = useState(false);
-    const navigate = useNavigate();
+export default function ChatInput({ onSend, loading }) {
+  const [input, setInput] = useState("");
+  const textareaRef = useRef(null);
 
-    const handleSubmit = async () => {
-        if (!input.trim() || loading) return;
+  const handleSubmit = () => {
+    if (!input.trim() || loading) return;
+    onSend(input.trim());
+    setInput("");
 
-        setLoading(true);
+    // Reset textarea height
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
+  };
 
-        // 🔥 Add to chat history
-        setHistory([...history, input]);
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
 
-        try {
-            const formData = new FormData();
-            formData.append("question", input);
+  const handleInput = (e) => {
+    setInput(e.target.value);
+    // Auto-expand textarea
+    const el = e.target;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 160) + "px";
+  };
 
-            const res = await API.post("/ask", formData);
+  return (
+    <div className="border-t border-border bg-dark/80 backdrop-blur-xl px-4 py-4">
+      <div className="max-w-3xl mx-auto">
+        <div
+          className={`flex items-end gap-3 bg-surface-2 border rounded-2xl px-4 py-3 transition-all duration-300 ${
+            input
+              ? "border-neon/40 shadow-neon-sm"
+              : "border-border hover:border-border-light"
+          }`}
+        >
+          {/* Textarea */}
+          <textarea
+            ref={textareaRef}
+            id="chat-input"
+            rows={1}
+            value={input}
+            onChange={handleInput}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask anything about your data..."
+            disabled={loading}
+            className="flex-1 bg-transparent text-white placeholder-text-tertiary text-sm leading-relaxed max-h-40 outline-none disabled:opacity-50"
+            style={{ height: "auto" }}
+          />
 
-            navigate("/result", {
-                state: {
-                    question: input,
-                    sql: res.data.sql_query,
-                    results: res.data.results,
-                },
-            });
-
-        } catch (err) {
-            alert("❌ Something went wrong. Try again.");
-        }
-
-        setLoading(false);
-        setInput("");
-    };
-
-    // ENTER support
-    const handleKeyPress = (e) => {
-        if (e.key === "Enter") handleSubmit();
-    };
-
-    return (
-        <div className="w-full max-w-2xl">
-
-            {/* INPUT BOX */}
-            <div className="flex bg-[#11161c] border border-gray-800 rounded-xl p-2 shadow-lg shadow-green-400/10">
-
-                <input
-                    className="flex-1 bg-transparent p-3 outline-none text-white placeholder-gray-500"
-                    placeholder="Ask anything about your data..."
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={handleKeyPress}
-                />
-
-                <button
-                    onClick={handleSubmit}
-                    disabled={loading}
-                    className={`px-4 py-2 rounded-lg font-semibold transition-all ${loading
-                            ? "bg-gray-600 text-gray-300 cursor-not-allowed"
-                            : "bg-green-400 text-black hover:bg-green-300 neon-btn"
-                        }`}
-                >
-                    {loading ? "..." : "Ask"}
-                </button>
-
-            </div>
-
-            {/* 🔥 PREMIUM LOADING OVERLAY */}
-            {loading && (
-                <div className="fixed inset-0 bg-black/80 flex flex-col items-center justify-center z-50">
-
-                    <div className="flex gap-2 mb-4">
-                        <div className="w-3 h-3 bg-green-400 rounded-full animate-bounce"></div>
-                        <div className="w-3 h-3 bg-green-400 rounded-full animate-bounce delay-150"></div>
-                        <div className="w-3 h-3 bg-green-400 rounded-full animate-bounce delay-300"></div>
-                    </div>
-
-                    <h2 className="text-green-400 text-xl">
-                        AI is analyzing your data...
-                    </h2>
-
-                    <p className="text-gray-400 mt-2 animate-pulse">
-                        Generating SQL & insights...
-                    </p>
-
-                </div>
+          {/* Send Button */}
+          <button
+            id="send-btn"
+            onClick={handleSubmit}
+            disabled={!input.trim() || loading}
+            className={`flex items-center justify-center w-9 h-9 rounded-xl flex-shrink-0 transition-all duration-200 ${
+              input.trim() && !loading
+                ? "bg-neon text-dark hover:shadow-neon hover:scale-105"
+                : "bg-surface-3 text-text-tertiary cursor-not-allowed"
+            }`}
+          >
+            {loading ? (
+              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+              </svg>
             )}
-
+          </button>
         </div>
-    );
+
+        {/* Helper text */}
+        <p className="text-text-tertiary text-[10px] text-center mt-2.5 select-none">
+          Press <kbd className="px-1.5 py-0.5 bg-surface rounded text-text-secondary font-mono text-[9px]">Enter</kbd> to send · <kbd className="px-1.5 py-0.5 bg-surface rounded text-text-secondary font-mono text-[9px]">Shift+Enter</kbd> for new line
+        </p>
+      </div>
+    </div>
+  );
 }

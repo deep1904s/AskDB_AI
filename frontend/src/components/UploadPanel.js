@@ -1,96 +1,175 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import API from "../services/api";
 
-export default function UploadPanel() {
-    const [file, setFile] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [success, setSuccess] = useState(false);
+export default function UploadPanel({ onUploadSuccess }) {
+  const [file, setFile] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState(null); // 'success' | 'error' | null
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef(null);
 
-    const upload = async () => {
-        if (!file) {
-            alert("⚠️ Please select a file first");
-            return;
-        }
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    const droppedFile = e.dataTransfer.files[0];
+    if (droppedFile && droppedFile.name.endsWith(".csv")) {
+      setFile(droppedFile);
+      setStatus(null);
+    }
+  };
 
-        setLoading(true);
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setDragOver(true);
+  };
 
-        try {
-            const formData = new FormData();
-            formData.append("file", file);
+  const handleDragLeave = () => setDragOver(false);
 
-            await API.post("/upload", formData);
+  const handleFileChange = (e) => {
+    const selected = e.target.files[0];
+    if (selected) {
+      setFile(selected);
+      setStatus(null);
+    }
+  };
 
-            setLoading(false);
-            setSuccess(true);
+  const upload = async () => {
+    if (!file) return;
+    setLoading(true);
+    setStatus(null);
 
-        } catch (err) {
-            setLoading(false);
-            alert("❌ Upload failed. Try again.");
-        }
-    };
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      await API.post("/upload", formData);
+      setStatus("success");
+      setFile(null);
+      if (onUploadSuccess) onUploadSuccess();
+    } catch (err) {
+      setStatus("error");
+    }
 
-    return (
-        <>
-            {/* FILE INPUT */}
-            <input
-                type="file"
-                onChange={(e) => setFile(e.target.files[0])}
-                className="mb-3 text-sm text-gray-300"
-            />
+    setLoading(false);
+  };
 
-            {/* UPLOAD BUTTON */}
-            <button
-                onClick={upload}
-                disabled={loading}
-                className={`w-full py-2 rounded-lg font-semibold transition ${loading
-                        ? "bg-gray-600 text-gray-300 cursor-not-allowed"
-                        : "bg-green-400 text-black hover:bg-green-300 neon-btn"
-                    }`}
-            >
-                {loading ? "Uploading..." : "Upload 🚀"}
-            </button>
+  const removeFile = () => {
+    setFile(null);
+    setStatus(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
-            {/* 🔥 LOADING MODAL (CHEF) */}
-            {loading && (
-                <div className="fixed inset-0 bg-black/80 flex flex-col items-center justify-center z-50">
+  const formatSize = (bytes) => {
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+  };
 
-                    <div className="text-6xl animate-bounce">👨‍🍳</div>
+  return (
+    <div className="space-y-3">
+      {/* Drop Zone */}
+      <div
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onClick={() => fileInputRef.current?.click()}
+        className={`relative border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all duration-300 ${
+          dragOver
+            ? "border-neon bg-neon/5 scale-[1.02]"
+            : "border-border hover:border-neon/40 hover:bg-surface-2"
+        }`}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv"
+          onChange={handleFileChange}
+          className="hidden"
+          id="file-upload"
+        />
+        <div className="text-neon/60 mb-2">
+          <svg className="w-8 h-8 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+          </svg>
+        </div>
+        <p className="text-text-secondary text-xs">
+          Drop CSV here or <span className="text-neon">browse</span>
+        </p>
+        <p className="text-text-tertiary text-[10px] mt-1">
+          Supports .csv files
+        </p>
+      </div>
 
-                    <h2 className="text-green-400 mt-4 text-xl">
-                        Cooking your data...
-                    </h2>
+      {/* Selected File */}
+      {file && (
+        <div className="flex items-center gap-2 bg-surface-2 border border-border rounded-lg p-2.5 animate-fade-in">
+          <div className="w-8 h-8 rounded-lg bg-neon/10 flex items-center justify-center flex-shrink-0">
+            <svg className="w-4 h-4 text-neon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-white text-xs font-medium truncate">{file.name}</p>
+            <p className="text-text-tertiary text-[10px]">{formatSize(file.size)}</p>
+          </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              removeFile();
+            }}
+            className="text-text-tertiary hover:text-red-400 transition-colors p-1"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
 
-                    <p className="text-gray-400 mt-2 animate-pulse">
-                        Preparing insights for you 🍲
-                    </p>
+      {/* Upload Button */}
+      {file && (
+        <button
+          id="upload-btn"
+          onClick={upload}
+          disabled={loading}
+          className="w-full py-2.5 rounded-xl text-sm font-semibold btn-neon disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          {loading ? (
+            <>
+              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              Uploading...
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+              </svg>
+              Upload Dataset
+            </>
+          )}
+        </button>
+      )}
 
-                </div>
-            )}
+      {/* Status Messages */}
+      {status === "success" && (
+        <div className="flex items-center gap-2 px-3 py-2.5 bg-green-500/10 border border-green-500/20 rounded-lg text-green-400 text-xs animate-fade-in">
+          <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Dataset uploaded successfully! Start querying.
+        </div>
+      )}
 
-            {/* ✅ SUCCESS MODAL */}
-            {success && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-
-                    <div className="bg-[#11161c] p-6 rounded-xl shadow-lg shadow-green-400/20 text-center max-w-sm">
-
-                        <h2 className="text-green-400 text-xl mb-2">
-                            ✅ Upload Successful!
-                        </h2>
-
-                        <p className="text-gray-400 mb-4">
-                            Your data is ready to query 🚀
-                        </p>
-
-                        <button
-                            onClick={() => setSuccess(false)}
-                            className="bg-green-400 text-black px-4 py-2 rounded-lg hover:scale-105"
-                        >
-                            OK
-                        </button>
-
-                    </div>
-                </div>
-            )}
-        </>
-    );
+      {status === "error" && (
+        <div className="flex items-center gap-2 px-3 py-2.5 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs animate-fade-in">
+          <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+          </svg>
+          Upload failed. Please try again.
+        </div>
+      )}
+    </div>
+  );
 }
