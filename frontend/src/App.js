@@ -13,6 +13,9 @@ function App() {
   const [conversations, setConversations] = useState([]);
   const [activeConversation, setActiveConversation] = useState(null);
   const chatEndRef = useRef(null);
+  // Use ref to always have latest activeConversation in callbacks
+  const activeConvRef = useRef(activeConversation);
+  activeConvRef.current = activeConversation;
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -20,6 +23,7 @@ function App() {
   }, [messages, loading]);
 
   const handleNewChat = useCallback(() => {
+    // Save current chat before starting new one
     setMessages([]);
     setActiveConversation(null);
   }, []);
@@ -27,10 +31,32 @@ function App() {
   const handleSelectConversation = useCallback((id) => {
     const conv = conversations.find((c) => c.id === id);
     if (conv) {
-      setMessages(conv.messages);
+      setMessages([...conv.messages]);
       setActiveConversation(id);
     }
   }, [conversations]);
+
+  const saveConversation = useCallback((allMessages, firstUserInput) => {
+    const convId = activeConvRef.current || Date.now().toString();
+
+    setConversations((prevConvs) => {
+      const existing = prevConvs.findIndex((c) => c.id === convId);
+
+      if (existing >= 0) {
+        // Update existing conversation
+        const newConvs = [...prevConvs];
+        newConvs[existing] = { ...newConvs[existing], messages: allMessages };
+        return newConvs;
+      } else {
+        // Create new conversation
+        const title = firstUserInput.length > 35
+          ? firstUserInput.slice(0, 35) + "..."
+          : firstUserInput;
+        setActiveConversation(convId);
+        return [{ id: convId, title, messages: allMessages }, ...prevConvs];
+      }
+    });
+  }, []);
 
   const handleSend = useCallback(async (input) => {
     const userMsg = {
@@ -57,46 +83,34 @@ function App() {
 
       setMessages((prev) => {
         const updated = [...prev, aiMsg];
-
-        // Save to conversations
-        setConversations((prevConvs) => {
-          const convId = activeConversation || Date.now().toString();
-          const title = input.length > 40 ? input.slice(0, 40) + "..." : input;
-          const existing = prevConvs.findIndex((c) => c.id === convId);
-
-          if (existing >= 0) {
-            const newConvs = [...prevConvs];
-            newConvs[existing] = { ...newConvs[existing], messages: updated };
-            return newConvs;
-          } else {
-            setActiveConversation(convId);
-            return [{ id: convId, title, messages: updated }, ...prevConvs];
-          }
-        });
-
+        // Save to conversation history
+        saveConversation(updated, input);
         return updated;
       });
     } catch (err) {
       const errorMsg = {
         role: "bot",
-        text: "Sorry, something went wrong while processing your query. Please ensure your dataset is uploaded and try again.",
+        text: "Sorry, something went wrong. Please ensure your dataset is uploaded and try again.",
         timestamp: new Date().toISOString(),
       };
-      setMessages((prev) => [...prev, errorMsg]);
+      setMessages((prev) => {
+        const updated = [...prev, errorMsg];
+        saveConversation(updated, input);
+        return updated;
+      });
     }
 
     setLoading(false);
-  }, [activeConversation]);
+  }, [saveConversation]);
 
   const handleSuggestionClick = useCallback((suggestion) => {
     handleSend(suggestion);
   }, [handleSend]);
 
   const handleUploadSuccess = useCallback(() => {
-    // Could add a system message to chat
     const sysMsg = {
       role: "bot",
-      text: "Dataset uploaded successfully! You can now ask questions about your data. Try something like: \"Show me all records\" or \"What columns are available?\"",
+      text: "Dataset uploaded successfully! You can now ask questions about your data. Try: \"Show me all records\" or \"What columns are available?\"",
       timestamp: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, sysMsg]);

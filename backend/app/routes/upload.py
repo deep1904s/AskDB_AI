@@ -1,7 +1,7 @@
 from fastapi import APIRouter, UploadFile, File
 import pandas as pd
 from app.database import engine
-from app.services.active_table import set_active_table
+from app.services.active_table import set_active_table, clear_context
 from app.services.cache import clear_cache
 
 router = APIRouter()
@@ -25,6 +25,9 @@ async def upload(file: UploadFile = File(...)):
 
         # Clear Redis cache so old queries don't return stale results
         clear_cache()
+
+        # Clear conversation context (old results no longer relevant)
+        clear_context()
 
         print(f"✅ Uploaded '{file.filename}' → table '{table_name}' ({len(df)} rows, {len(df.columns)} columns)")
 

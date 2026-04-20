@@ -4,7 +4,12 @@ from app.database import engine
 from app.services.sql_generator import generate_sql
 from app.services.schema_service import get_schema_for_table
 from app.services.active_table import get_active_table, set_last_context, get_last_context
-from app.services.chat_service import classify_intent, generate_chat_response, generate_analytics_response
+from app.services.chat_service import (
+    classify_intent,
+    generate_chat_response,
+    generate_analytics_response,
+    generate_result_explanation,
+)
 from fastapi import Request
 from app.core.limiter import limiter
 
@@ -14,11 +19,15 @@ router = APIRouter()
 @limiter.limit("5/minute")
 async def ask(request: Request, question: str = Form(...)):
     try:
-        # Step 1: Classify intent
-        intent = classify_intent(question)
-        print(f"🎯 Intent: {intent} | Question: {question}")
+        # Check if we have previous results for context-aware classification
+        last_context = get_last_context()
+        has_previous = last_context.get("results") is not None
 
-        # Step 2: Handle general chat
+        # Step 1: Classify intent (context-aware)
+        intent = classify_intent(question, has_previous_results=has_previous)
+        print(f"🎯 Intent: {intent} | Has context: {has_previous} | Q: {question}")
+
+        # ── GENERAL CHAT ──
         if intent == "general_chat":
             chat_response = generate_chat_response(question)
             return {
@@ -28,11 +37,10 @@ async def ask(request: Request, question: str = Form(...)):
                 "sql_query": None,
                 "results": None
             }
-            
-        # Step 3: Handle follow-up analytics
+
+        # ── FOLLOW-UP ANALYTICS ──
         if intent == "follow_up_analytics":
-            context = get_last_context()
-            analytics_response = generate_analytics_response(question, context)
+            analytics_response = generate_analytics_response(question, last_context)
             return {
                 "question": question,
                 "intent": "follow_up_analytics",
@@ -41,7 +49,7 @@ async def ask(request: Request, question: str = Form(...)):
                 "results": None
             }
 
-        # Step 4: Handle data query
+        # ── DATA QUERY ──
         active_table = get_active_table()
 
         if not active_table:
@@ -53,52 +61,54 @@ async def ask(request: Request, question: str = Form(...)):
                 "results": None
             }
 
-        # Get schema for the active table only
         schema = get_schema_for_table(active_table)
 
         if not schema:
             return {
                 "question": question,
                 "intent": "data_query",
-                "response": f"Table '{active_table}' not found in database. Please re-upload your CSV.",
+                "response": f"Table '{active_table}' not found. Please re-upload your CSV.",
                 "sql_query": None,
                 "results": None
             }
 
-        # Generate SQL using the active table name and its schema
+        # Generate SQL
         sql_query = generate_sql(question, schema, active_table)
 
-        # Check for generation errors
         if sql_query.startswith("ERROR:"):
             return {
                 "question": question,
                 "intent": "data_query",
-                "response": "Sorry, I had trouble generating SQL for that question. Could you rephrase it?",
+                "response": "Sorry, I couldn't generate SQL for that. Could you rephrase?",
                 "sql_query": None,
                 "results": None
             }
 
         # Safety check
-        if any(word in sql_query.lower() for word in ["drop", "delete", "truncate"]):
+        if any(word in sql_query.lower() for word in ["drop", "delete", "truncate", "alter", "insert", "update"]):
             return {
                 "question": question,
                 "intent": "data_query",
-                "response": "That query was blocked for safety reasons. I can only run SELECT queries.",
+                "response": "That query was blocked for safety. I can only run SELECT queries.",
                 "sql_query": None,
                 "results": None
             }
 
+        # Execute query
         with engine.connect() as conn:
             result = conn.execute(text(sql_query))
             rows = [dict(row._mapping) for row in result]
-            
-        # Save context for follow-up analytics
+
+        # Save context for follow-up questions
         set_last_context(question, sql_query, rows)
+
+        # Generate explanation alongside results
+        explanation = generate_result_explanation(question, sql_query, rows, active_table)
 
         return {
             "question": question,
             "intent": "data_query",
-            "response": f"Here are the results from your '{active_table}' dataset:",
+            "response": explanation,
             "sql_query": sql_query,
             "results": rows,
             "table": active_table

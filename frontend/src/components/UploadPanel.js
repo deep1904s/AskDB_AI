@@ -33,6 +33,12 @@ export default function UploadPanel({ onUploadSuccess }) {
     }
   };
 
+  const handleBrowseClick = () => {
+    // Reset file input value so re-selecting the same file triggers onChange
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    fileInputRef.current?.click();
+  };
+
   const upload = async () => {
     if (!file) return;
     setLoading(true);
@@ -44,6 +50,8 @@ export default function UploadPanel({ onUploadSuccess }) {
       await API.post("/upload", formData);
       setStatus("success");
       setFile(null);
+      // Reset file input so next browse works cleanly
+      if (fileInputRef.current) fileInputRef.current.value = "";
       if (onUploadSuccess) onUploadSuccess();
     } catch (err) {
       setStatus("error");
@@ -66,12 +74,12 @@ export default function UploadPanel({ onUploadSuccess }) {
 
   return (
     <div className="space-y-3">
-      {/* Drop Zone */}
+      {/* Drop Zone — always visible */}
       <div
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        onClick={() => fileInputRef.current?.click()}
+        onClick={handleBrowseClick}
         className={`relative border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all duration-300 ${
           dragOver
             ? "border-neon bg-neon/5 scale-[1.02]"
@@ -92,7 +100,8 @@ export default function UploadPanel({ onUploadSuccess }) {
           </svg>
         </div>
         <p className="text-text-secondary text-xs">
-          Drop CSV here or <span className="text-neon">browse</span>
+          {status === "success" ? "Upload another CSV" : "Drop CSV here or"}{" "}
+          <span className="text-neon">browse</span>
         </p>
         <p className="text-text-tertiary text-[10px] mt-1">
           Supports .csv files
@@ -154,20 +163,40 @@ export default function UploadPanel({ onUploadSuccess }) {
 
       {/* Status Messages */}
       {status === "success" && (
-        <div className="flex items-center gap-2 px-3 py-2.5 bg-green-500/10 border border-green-500/20 rounded-lg text-green-400 text-xs animate-fade-in">
-          <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          Dataset uploaded successfully! Start querying.
+        <div className="flex items-center justify-between px-3 py-2.5 bg-green-500/10 border border-green-500/20 rounded-lg text-green-400 text-xs animate-fade-in">
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Uploaded! Start querying.
+          </div>
+          <button
+            onClick={() => setStatus(null)}
+            className="text-green-400/60 hover:text-green-400 ml-2"
+          >
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
       )}
 
       {status === "error" && (
-        <div className="flex items-center gap-2 px-3 py-2.5 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs animate-fade-in">
-          <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-          </svg>
-          Upload failed. Please try again.
+        <div className="flex items-center justify-between px-3 py-2.5 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs animate-fade-in">
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+            </svg>
+            Upload failed. Try again.
+          </div>
+          <button
+            onClick={() => setStatus(null)}
+            className="text-red-400/60 hover:text-red-400 ml-2"
+          >
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
       )}
     </div>

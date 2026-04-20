@@ -35,8 +35,9 @@ def set_last_context(question: str, sql: str, results: list):
     global _last_question, _last_sql, _last_results
     _last_question = question
     _last_sql = sql
-    # Store max 50 rows to keep LLM context manageable
-    _last_results = results[:50] if results else None
+    # Store max 20 rows to keep LLM context fast (prevents timeout)
+    _last_results = results[:20] if results else None
+    _total_row_count = len(results) if results else 0
     print(f"📝 Context saved: {len(results) if results else 0} rows")
 
 
